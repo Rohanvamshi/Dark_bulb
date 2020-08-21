@@ -7,16 +7,16 @@
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Bulbs");
-MODULE_DESCRIPTION("gpio");
+MODULE_DESCRIPTION("dev gpio");
 MODULE_VERSION("1.0");
 
-#define DEVICE_NAME "gpio"
-#define CLASS_NAME "gpio"
+#define DEVICE_NAME "dev_gpio"
+#define CLASS_NAME "dev_gpio"
 /*
 Device class variables
 */
-static struct class* gpio_class = NULL;
-static struct device* gpio_device = NULL;
+static struct class* dev_gpio_class = NULL;
+static struct device* dev_gpio_device = NULL;
 
 
 /*
@@ -68,7 +68,7 @@ static int device_release(struct inode *inode, struct file *file){
 }
 
 static int __init dev_gpio_init(void){
-	printk(KERN_INFO "gpio\n");
+	printk(KERN_INFO "%s\n", DEVICE_NAME);
 
 	/*Register character device*/
 	major_num = register_chrdev(0, DEVICE_NAME, &file_ops);
@@ -77,31 +77,31 @@ static int __init dev_gpio_init(void){
 		printk(KERN_ALERT "Failed to register device %s major number.\n", DEVICE_NAME);
 		return major_num;
 	}
-	printk(KERN_ALERT "%s device registered correctly with major \
+	printk(KERN_INFO "%s device registered correctly with major \
 		number %d\n",DEVICE_NAME, major_num );
 
 	// Register device class with udev
-	gpio_class = class_create(THIS_MODULE, CLASS_NAME);
+	dev_gpio_class = class_create(THIS_MODULE, CLASS_NAME);
 
 	// Error creating device class
-	if(IS_ERR(gpio_class)){
+	if(IS_ERR(dev_gpio_class)){
 		unregister_chrdev(major_num, DEVICE_NAME);
 		printk(KERN_ALERT "Failed to create device class %s\n", CLASS_NAME);
-		return PTR_ERR(gpio_class);
+		return PTR_ERR(dev_gpio_class);
 	}
 
 	printk(KERN_INFO "%s device class registered correctly\n", CLASS_NAME);
 
 	// Register device driver
-	gpio_device = device_create(gpio_class, NULL, MKDEV(major_num, 0),
+	dev_gpio_device = device_create(dev_gpio_class, NULL, MKDEV(major_num, 0),
 			NULL, DEVICE_NAME);
 
 	//Error creating device and registering device driver
-	if(IS_ERR(gpio_device)){
-		class_destroy(gpio_class); //clean up created device class
+	if(IS_ERR(dev_gpio_device)){
+		class_destroy(dev_gpio_class); //clean up created device class
 		unregister_chrdev(major_num, DEVICE_NAME);
 		printk(KERN_ALERT "Failed to create device %s\n", DEVICE_NAME);
-		return PTR_ERR(gpio_device);
+		return PTR_ERR(dev_gpio_device);
 	}
 	printk(KERN_INFO "%s device created correctly\n", DEVICE_NAME);
 	return 0;
@@ -109,11 +109,11 @@ static int __init dev_gpio_init(void){
 
 static void __exit dev_gpio_exit(void){
 	//Remove the device
-	device_destroy(gpio_class, MKDEV(major_num, 0));
+	device_destroy(dev_gpio_class, MKDEV(major_num, 0));
 	//Unregister device class
-	class_unregister(gpio_class);
+	class_unregister(dev_gpio_class);
 	//Remove the device class
-	class_destroy(gpio_class);
+	class_destroy(dev_gpio_class);
  	printk(KERN_INFO "Goodbye %s\n", DEVICE_NAME);
 	unregister_chrdev(major_num, DEVICE_NAME);
 	printk(KERN_INFO "Goodbye, %s\n", DEVICE_NAME);

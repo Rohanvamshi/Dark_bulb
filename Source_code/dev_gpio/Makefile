@@ -1,5 +1,4 @@
 TARGET=dev_gpio
-
 SRC=./src
 
 obj-m +=$(SRC)/$(TARGET).o

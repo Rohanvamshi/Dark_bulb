@@ -3,9 +3,7 @@ USER_PROG=bulb
 
 .PHONY: clean driver prog clean
 
-all:
-	make -C $(KERNEL_DRIVER)
-	make -C $(USER_PROG)
+all: driver prog
 
 driver:
 	make -C $(KERNEL_DRIVER)

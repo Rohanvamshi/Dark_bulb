@@ -1,18 +1,12 @@
 KERNEL_DRIVER=dev_gpio
 USER_PROG=bulb
+TARGETS=all clean
+SUBDIRS = $(KERNEL_DRIVER) $(USER_PROG)
+export CURR_KERNEL_DIR=$(PWD)/$(KERNEL_DRIVER)
 
-.PHONY: clean driver prog clean
 
-all:
-	make -C $(KERNEL_DRIVER)
-	make -C $(USER_PROG)
+$(TARGETS): $(SUBDIRS)
+$(SUBDIRS):
+	$(MAKE) -C $@ $(MAKECMDGOALS)
 
-driver:
-	make -C $(KERNEL_DRIVER)
-
-prog:
-	make -C $(USER_PROG)
-
-clean:
-	make -C $(KERNEL_DRIVER) clean
-	make -C $(USER_PROG) clean
+.PHONY: $(TARGETS) $(SUBDIRS)

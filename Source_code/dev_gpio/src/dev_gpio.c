@@ -51,12 +51,19 @@ static ssize_t device_write(struct file *flip, const char *buffer, size_t len, l
 static int device_open(struct inode *inode, struct file *file){
 	//Check if device is already open
 	if(device_open_count){
-		return -EBUSY;
+		
+		printk(KERN_ALERT"device is open by %d devices \n", device_open_count);
+	
 	}
-
+	else
+	{
+	printk(KERN_INFO"GPIO device open by you first \n");
+	}
 	device_open_count++;
+	printk(KERN_INFO "device count = %d \n" , device_open_count); 
 	try_module_get(THIS_MODULE);
 	return 0;
+	
 }
 
 /*Called when device is closed*/
@@ -64,6 +71,8 @@ static int device_release(struct inode *inode, struct file *file){
 	/*Update device reference counter*/
 	device_open_count--;
 	module_put(THIS_MODULE);
+	printk(KERN_INFO"GPIO device released \n");
+	printk(KERN_INFO "device count = %d \n" , device_open_count); 
 	return 0;
 }
 

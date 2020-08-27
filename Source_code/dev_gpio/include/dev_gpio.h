@@ -1,6 +1,6 @@
 
-#ifndef dev_gpio_h
-#define dev_gpio_h
+#ifndef DEV_GPIO_H
+#define DEV_GPIO_H
 
 // define IOC commands 
 #define DEV_GPIO_IOC_MAGIC  'K'
@@ -10,4 +10,4 @@
 
 
 
-#endif
+#endif // End of DEV_GPIO_H

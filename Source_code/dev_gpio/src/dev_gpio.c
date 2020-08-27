@@ -4,6 +4,8 @@
 #include <linux/kernel.h>
 #include <linux/fs.h>
 #include <asm/uaccess.h>
+#include "../include/dev_gpio.h"												// IOCTL and other definitions here
+
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Bulbs");
@@ -22,6 +24,7 @@ static struct device* dev_gpio_device = NULL;
 /*
 Device functions
 */
+long devgpio_ioctl (struct file *,unsigned int, unsigned long);
 static int device_open(struct inode *, struct file *);
 static int device_release(struct inode *, struct file *);
 static ssize_t device_read(struct file *, char *, size_t, loff_t *);
@@ -127,6 +130,31 @@ static void __exit dev_gpio_exit(void){
 	unregister_chrdev(major_num, DEVICE_NAME);
 	printk(KERN_INFO "Goodbye, %s\n", DEVICE_NAME);
 }
+// IOCTL funciton implimentation
 
+long devgpio_ioctl (struct file *filp,
+                   unsigned int cmd, unsigned long arg)
+{
+
+	int err = 0;
+	if (_IOC_TYPE(cmd) != DEV_GPIO_IOC_MAGIC) return -ENOTTY;
+	
+	// checking if the memory pointer specified can be written by the driver.
+	if (_IOC_DIR(cmd) & _IOC_READ)
+		err = !access_ok(VERIFY_WRITE, (void __user *)arg, _IOC_SIZE(cmd));
+	else if (_IOC_DIR(cmd) & _IOC_WRITE)
+		err =  !access_ok(VERIFY_READ, (void __user *)arg, _IOC_SIZE(cmd));
+	if (err)
+		return -EFAULT;
+		
+		
+	switch(cmd) {
+		
+		default:
+		return -ENOTTY;
+	}
+	
+	
+}	
 module_init(dev_gpio_init);
 module_exit(dev_gpio_exit);

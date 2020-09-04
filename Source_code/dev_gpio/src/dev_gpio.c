@@ -23,6 +23,7 @@ static struct device* dev_gpio_device = NULL;
 
 
 /*
+TODO: Move to dev_gpio.h
 Device functions
 */
 long devgpio_ioctl (struct file *,unsigned int, unsigned long);
@@ -30,6 +31,22 @@ static int device_open(struct inode *, struct file *);
 static int device_release(struct inode *, struct file *);
 static ssize_t device_read(struct file *, char *, size_t, loff_t *);
 static ssize_t device_write(struct file *, const char *, size_t, loff_t *);
+
+/*
+TODO: Move to dev_gpio.h
+Internal implementations of device functions
+*/
+int _ioctl_read_pin(unsigned int pin_num);
+
+/*
+TODO: Move function to debug.c file
+*/
+void int_to_bin(uint32_t num){
+  for (uint32_t ctr = 1 << 31; ctr > 0; ctr = ctr / 2){
+    (num & ctr)? printk("1"): printk("0");
+  }
+  printk("\n");
+}
 
 static int major_num = 0;
 static int device_open_count = 0;
@@ -43,6 +60,22 @@ static struct file_operations file_ops = {
 	.open = device_open,
 	.release = device_release
 	};
+
+//Reads from the specified ioctl pin.
+//Assumes that the pin number is the physical pin number on the board
+// in the pinout diagram
+//Returns 0 or 1 as the value, or -1 if error
+int _ioctl_read_pin(unsigned int pin_num){
+
+	//Check if pin is part of first or second set of pin level registers
+
+	//Create pin mask and calculate shift amount to convert to bit 0 in int
+
+	//Request memory region using request_mem_region
+
+	//Release memory region using release_mem_region
+	//return result
+}
 
 static ssize_t device_read(struct file *flip, char *buffer, size_t len, loff_t *offset){
 	return 0;
@@ -153,6 +186,7 @@ long devgpio_ioctl (struct file *filp,
 		case DEV_GPIO_IOC_RESET:
 			break;
 		case DEV_GPIO_IOC_READ:
+
 			break;
 		default:
 		return -ENOTTY;

@@ -3,6 +3,7 @@
 #include <linux/device.h>
 #include <linux/kernel.h>
 #include <linux/fs.h>
+#include <linux/ioport.h>
 #include <asm/uaccess.h>
 #include "../include/dev_gpio.h"		// IOCTL and other definitions here
 #include "../include/gpio.h"
@@ -42,7 +43,8 @@ int _ioctl_read_pin(unsigned int pin_num);
 TODO: Move function to debug.c file
 */
 void int_to_bin(uint32_t num){
-  for (uint32_t ctr = 1 << 31; ctr > 0; ctr = ctr / 2){
+	uint32_t ctr;
+  for (ctr = 1 << 31; ctr > 0; ctr = ctr / 2){
     (num & ctr)? printk("1"): printk("0");
   }
   printk("\n");
@@ -58,7 +60,8 @@ static struct file_operations file_ops = {
 	.read = device_read,
 	.write = device_write,
 	.open = device_open,
-	.release = device_release
+	.release = device_release,
+	.unlocked_ioctl = devgpio_ioctl
 	};
 
 //Reads from the specified ioctl pin.
@@ -67,14 +70,38 @@ static struct file_operations file_ops = {
 //Returns 0 or 1 as the value, or -1 if error
 int _ioctl_read_pin(unsigned int pin_num){
 
+	//Make sure that pin number is valid
+	if(pin_num >= GPIO_PIN_COUNT){
+		return -EINVAL;
+	}
+
+	uint32_t gpio_gplev_base = (uint32_t) (GPIO_BASE + GPIO_GPLEV_OFFSET);
+
 	//Check if pin is part of first or second set of pin level registers
+	if(pin_num >= 32){
+		// Use the second register for the pin count
+		gpio_gplev_base += (uint32_t) GPIO_REG_SIZE;
+	}
 
 	//Create pin mask and calculate shift amount to convert to bit 0 in int
 
 	//Request memory region using request_mem_region
+	if(request_mem_region(gpio_gplev_base, GPIO_REG_SIZE, DEVICE_NAME) == NULL){
+		printk(KERN_ALERT "Memory region %x is already requested by another process",
+			(unsigned int) gpio_gplev_base);
+		return -EBUSY;
+	}
+
+	printk(KERN_INFO "Successfully requested memory region %x",
+		(unsigned int) gpio_gplev_base);
 
 	//Release memory region using release_mem_region
+	release_mem_region(gpio_gplev_base, GPIO_REG_SIZE);
+	printk(KERN_INFO "Successfully released memory region %x",
+		(unsigned int) gpio_gplev_base);
+
 	//return result
+	return 0;
 }
 
 static ssize_t device_read(struct file *flip, char *buffer, size_t len, loff_t *offset){
@@ -89,12 +116,12 @@ static int device_open(struct inode *inode, struct file *file){
 	//Check if device is already open
 	if(device_open_count){
 
-		printk(KERN_ALERT"device is open by %d devices \n", device_open_count);
+		printk(KERN_ALERT "device is open by %d devices \n", device_open_count);
 
 	}
 	else
 	{
-	printk(KERN_INFO"GPIO device open by you first \n");
+	printk(KERN_INFO "GPIO device open by you first \n");
 	}
 	device_open_count++;
 	printk(KERN_INFO "device count = %d \n" , device_open_count);
@@ -175,18 +202,20 @@ long devgpio_ioctl (struct file *filp,
 
 	// checking if the memory pointer specified can be written by the driver.
 	if (_IOC_DIR(cmd) & _IOC_READ)
-		err = !access_ok(VERIFY_WRITE, (void __user *)arg, _IOC_SIZE(cmd));
+		err = !access_ok((void __user *)arg, _IOC_SIZE(cmd));
 	else if (_IOC_DIR(cmd) & _IOC_WRITE)
-		err =  !access_ok(VERIFY_READ, (void __user *)arg, _IOC_SIZE(cmd));
+		err =  !access_ok((void __user *)arg, _IOC_SIZE(cmd));
 	if (err)
 		return -EFAULT;
 
-
+  char val = (char)0;
 	switch(cmd) {
 		case DEV_GPIO_IOC_RESET:
 			break;
 		case DEV_GPIO_IOC_READ:
-
+			printk(KERN_INFO "Performing ioctl read");
+			val = *((char *)arg);
+			_ioctl_read_pin(val);
 			break;
 		default:
 		return -ENOTTY;

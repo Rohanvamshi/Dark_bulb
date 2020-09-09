@@ -6,4 +6,10 @@
 
 // GPIO offset for GPLEV (read state) registers
 #define GPIO_GPLEV_OFFSET 0x34
+
+//GPIO register size
+#define GPIO_REG_SIZE 0x4
+
+//GPIO PIN count
+#define GPIO_PIN_COUNT 54
 #endif //GPIO_H

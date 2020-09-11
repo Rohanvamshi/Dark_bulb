@@ -12,4 +12,5 @@
 
 //GPIO PIN count
 #define GPIO_PIN_COUNT 54
+
 #endif //GPIO_H

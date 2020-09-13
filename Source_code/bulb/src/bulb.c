@@ -4,6 +4,7 @@
 #include <errno.h>
 
 #include "bulb.h"
+#include "ini_config_parser.h"
 #include "peripherals.h"
 #pragma pack(1)
 
@@ -31,12 +32,12 @@ int main(int argc, char **argv){
   char * filename  = NULL;
   FILE * filep = NULL;
   char line_buffer[MAX_LINE_LEN];
+  MAP ini_content[MAX_FILE_LINES+1];
 
   if(argc == NO_ARGS){
     printf(USAGE_BANNER, OPT_CONFIG, OPT_VERSION);
     goto leave;
   }
-
 
   // Run version option if matching
   if(strcmp(option, OPT_VERSION) == 0){
@@ -44,7 +45,6 @@ int main(int argc, char **argv){
     goto leave;
 
   // Run config option if matching
-
   }else if(strcmp(option, OPT_CONFIG) == 0){
     if(argc == VALID_CMD_LEN){
       filename = argv[OPT_ARG_IDX+1];
@@ -65,6 +65,10 @@ int main(int argc, char **argv){
   }
 
   printf("Reading from config file %s\n", filename);
+  memset(ini_content, 0, sizeof(MAP)*MAX_FILE_LINES);
+  parse_ini_config(filep, ini_content, MAX_FILE_LINES);
+  print_map(ini_content, MAX_FILE_LINES);
+
 
 
 

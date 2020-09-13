@@ -1,4 +1,4 @@
-#ifdef PERIPHERAL_H
+#ifndef PERIPHERAL_H
 #define PERIPHERAL_H
 
 /*

@@ -1,6 +1,6 @@
 #ifndef SEVEN_SEG_PERIPHERAL_H
 #define SEVEN_SEG_PERIPHERAL_H
-
+#include <stdint.h>
 #include "peripheral.h"
 #define SEV_SEG_HEADER "7_SEG_DISPLAY"
 #define SEV_SEG_A 'A'
@@ -11,19 +11,20 @@
 #define SEV_SEG_F 'F'
 #define SEV_SEG_G 'G'
 #define SEV_SEG_MAX_VAL 255
+#define NUM_SEGS 7
 
 /*
 Defines a seven segment cathode display
 */
 typedef struct seven_seg_display {
   PERIPHERAL base;
-  unsigned int seg_a :1;
-  unsigned int seg_b :1;
-  unsigned int seg_c :1;
-  unsigned int seg_d :1;
-  unsigned int seg_e :1;
-  unsigned int seg_f :1;
-  unsigned int seg_g :1;
+  uint8_t seg_a;
+  uint8_t seg_b;
+  uint8_t seg_c;
+  uint8_t seg_d;
+  uint8_t seg_e;
+  uint8_t seg_f;
+  uint8_t seg_g;
 } SEVEN_SEG_DISPLAY;
 
 /*

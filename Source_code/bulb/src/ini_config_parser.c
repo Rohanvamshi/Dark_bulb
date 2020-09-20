@@ -28,6 +28,20 @@ void print_map(MAP * a_map, size_t len){
   }
 }
 
+/*
+Checks to see if the given map object is a header or not
+
+a_map: The given MAP object
+
+Returns:
+1 if the map object is a header, else 0;
+*/
+int is_header(MAP a_map){
+  if(a_map.key != NULL && a_map.value == NULL){
+    return 1;
+  }
+  return 0;
+}
 
 /*
 Parses the config file

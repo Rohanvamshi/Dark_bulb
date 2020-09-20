@@ -26,6 +26,47 @@ Program options
 char * OPT_CONFIG  = "--config";
 char * OPT_VERSION = "--version";
 
+/*
+Initializes a given seven seg display structure based on the given ini map
+
+seven_display: The seven segment peripheral structure
+ini_content: The ini map object containin the config data
+
+Returns:
+Returns 0 on success, else returns -1 on failure
+*/
+int init_seven_seg_peripheral(SEVEN_SEG_DISPLAY * seven_display, MAP ini_content[], size_t len){
+
+  //Check map contains correct number of segs + header
+  if(len < NUM_SEGS+1){
+    printf("Nnumber of segs listed in ini map is not enough\n");
+    return -1;
+  }
+
+  int ctr = 0;
+  int is_seven_seg_header = 0;
+  MAP entry;
+  for(ctr = len; ctr < len; ctr ++){
+    entry = ini_content[ctr];
+
+    //Check if we have reached the seven segment display section
+    if(is_header(entry) && strstr(entry.key, SEV_SEG_HEADER) != NULL){
+      is_seven_seg_header = 1;
+      printf("%s header found\n", SEV_SEG_HEADER);
+
+    //If we have reached a header that is not seven segment
+    } else if(is_header(entry) && strstr(entry.key, SEV_SEG_HEADER) == NULL){
+      break;
+    }
+
+    //When inside of the seven_seg_section, set segment in display
+    if(is_header(entry) != 1 && entry.value != NULL && is_seven_seg_header){
+      set_seven_segment(seven_display, entry.key[0], (unsigned int)atoi(entry.value));
+    }
+  }
+  return 0;
+}
+
 
 /*
 Main program
@@ -72,12 +113,17 @@ int main(int argc, char **argv){
   //Parse file contents into map object
   parse_ini_config(filep, ini_content, MAX_FILE_LINES);
   print_map(ini_content, MAX_FILE_LINES);
-  SEVEN_SEG_DISPLAY seven_display = {0,0,0,0,0,0,0};
-  set_seven_segment(seven_display, 'A', 3);
+  SEVEN_SEG_DISPLAY seven_display = {.seg_a = 0,.seg_b = 0,
+                                          .seg_c = 0, .seg_d = 0,
+                                          .seg_e = 0,.seg_f = 0, .seg_g = 0};
+
+  //Initialize seven segment display
+  if(init_seven_seg_peripheral(&seven_display, ini_content,
+      (size_t) MAX_FILE_LINES) < 0){
+    printf("Error initializing seven segment display peripheral configuration");
+    goto leave;
+  }
   print_seven_segment(seven_display);
-
-
-
 
   leave:
     //Close file if open

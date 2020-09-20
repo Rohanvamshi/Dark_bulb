@@ -5,7 +5,10 @@
 
 #include "bulb.h"
 #include "ini_config_parser.h"
-#include "peripherals.h"
+
+//Include peripherals
+#include "seven_seg_peripheral.h"
+#include "infrared_fc_51_peripheral.h"
 #pragma pack(1)
 
 char * USAGE_BANNER = "Usage: bulb [OPTIONS]\n\n"
@@ -31,7 +34,6 @@ int main(int argc, char **argv){
   char * option = argv[OPT_ARG_IDX];
   char * filename  = NULL;
   FILE * filep = NULL;
-  char line_buffer[MAX_LINE_LEN];
   MAP ini_content[MAX_FILE_LINES+1];
 
   if(argc == NO_ARGS){
@@ -66,8 +68,13 @@ int main(int argc, char **argv){
 
   printf("Reading from config file %s\n", filename);
   memset(ini_content, 0, sizeof(MAP)*MAX_FILE_LINES);
+
+  //Parse file contents into map object
   parse_ini_config(filep, ini_content, MAX_FILE_LINES);
   print_map(ini_content, MAX_FILE_LINES);
+  SEVEN_SEG_DISPLAY seven_display = {0,0,0,0,0,0,0};
+  set_seven_segment(seven_display, 'A', 3);
+  print_seven_segment(seven_display);
 
 
 

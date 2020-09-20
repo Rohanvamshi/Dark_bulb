@@ -1,6 +1,5 @@
 #ifndef BULB_H
 #define BULB_H
-#include "peripherals.h"
 
 #define NO_ARGS 1         //Length of command line args when no args given
 #define OPT_ARG_IDX 1     //Index of option command in command line args

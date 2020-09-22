@@ -6,13 +6,14 @@ Prints out the contents of a seven seg display
 */
 void print_seven_segment(SEVEN_SEG_DISPLAY sev_display){
 
-	printf("%c = %u", SEV_SEG_A, sev_display.seg_a);
-	printf("%c = %u", SEV_SEG_B, sev_display.seg_b);
-	printf("%c = %u", SEV_SEG_C, sev_display.seg_c);
-	printf("%c = %u", SEV_SEG_D, sev_display.seg_d);
-	printf("%c = %u", SEV_SEG_E, sev_display.seg_e);
-	printf("%c = %u", SEV_SEG_F, sev_display.seg_f);
-	printf("%c = %u", SEV_SEG_G, sev_display.seg_g);
+	printf("%s\n", SEV_SEG_HEADER);
+	printf("%c = %u\n", SEV_SEG_A, sev_display.seg_a);
+	printf("%c = %u\n", SEV_SEG_B, sev_display.seg_b);
+	printf("%c = %u\n", SEV_SEG_C, sev_display.seg_c);
+	printf("%c = %u\n", SEV_SEG_D, sev_display.seg_d);
+	printf("%c = %u\n", SEV_SEG_E, sev_display.seg_e);
+	printf("%c = %u\n", SEV_SEG_F, sev_display.seg_f);
+	printf("%c = %u\n", SEV_SEG_G, sev_display.seg_g);
 }
 
 
@@ -24,7 +25,7 @@ seg: The char segment selected
 value: The value to set the segment to
 
 Returns:
-Returns 0 on success, a negative value on failure
+	Returns 0 on success, a negative value on failure
 */
 int set_seven_segment(SEVEN_SEG_DISPLAY * sev_display, char seg, unsigned int value){
 
@@ -34,7 +35,7 @@ int set_seven_segment(SEVEN_SEG_DISPLAY * sev_display, char seg, unsigned int va
 		return -1;
 	}
 
-
+	//Select a segment
 	switch(seg){
 		case SEV_SEG_A:
 			sev_display->seg_a = value;

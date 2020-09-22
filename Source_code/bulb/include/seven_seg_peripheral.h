@@ -11,7 +11,7 @@
 #define SEV_SEG_F 'F'
 #define SEV_SEG_G 'G'
 #define SEV_SEG_MAX_VAL 255
-#define NUM_SEGS 7
+#define NUM_SEV_DISPLAY_SEGS 7
 
 /*
 Defines a seven segment cathode display

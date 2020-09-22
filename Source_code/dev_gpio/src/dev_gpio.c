@@ -151,7 +151,9 @@ static int device_open(struct inode *inode, struct file *file){
 	//Check if device is already open
 	if(device_open_count){
 
+
 		printk(KERN_ALERT "device is open by %d devices \n", device_open_count);
+
 
 	}
 	else
@@ -234,15 +236,22 @@ long devgpio_ioctl (struct file *filp,
 
 	int return_val = 0;
 	int err = 0;
+	
+	// Invalid command type
+	if (_IOC_TYPE(cmd) != DEV_GPIO_IOC_MAGIC){
+		return -ENOTTY;
+	}
 	//Checking if the user memory pointer specified can be written by the driver.
-	if (_IOC_DIR(cmd) & _IOC_READ)
+	if (_IOC_DIR(cmd) & _IOC_READ){
 		err = !access_ok((void __user *)arg, _IOC_SIZE(cmd));
-	else if (_IOC_DIR(cmd) & _IOC_WRITE)
+	}else if (_IOC_DIR(cmd) & _IOC_WRITE){
 		err =  !access_ok((void __user *)arg, _IOC_SIZE(cmd));
-	if (err)
+	}
+	if (err){
 		return -EFAULT;
+	}
 
-  char val = (char)0;
+  	char val = (char)0;
 
 	//Implementation of supported dev_gpio commands
 	switch(cmd) {

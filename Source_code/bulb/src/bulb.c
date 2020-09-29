@@ -196,6 +196,9 @@ int main(int argc, char **argv){
   }
   print_infrared_sensor(inf_fc51_sensor);
 
+  //Cleanup ini parser content
+  free_map_list(ini_content, (size_t) MAX_FILE_LINES);
+
   leave:
     //Close file if open
     if(filep > 0)

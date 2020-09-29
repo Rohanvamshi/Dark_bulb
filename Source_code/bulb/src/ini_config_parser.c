@@ -2,6 +2,30 @@
 #include "ini_config_parser.h"
 
 /*
+Cleans up the config list by freeing memory properly
+
+content: The array to store key value pairs from the config
+content_len: The length of the content array
+
+Returns:
+N/A
+
+*/
+void free_map_list(MAP * content, size_t content_len){
+
+  int ctr= 0;
+  for(ctr = 0; ctr < content_len; ctr++){
+    if (content[ctr].key != NULL){
+      free(content[ctr].key);
+    }
+
+    if(content[ctr].value != NULL){
+      free(content[ctr].value);
+    }
+  }
+}
+
+/*
 Prints a map object
 
 a_map: An array of maps

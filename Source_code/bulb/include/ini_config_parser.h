@@ -52,4 +52,16 @@ Returns an int of value 0 for success and -errno for failure
 */
 int parse_ini_config(FILE * filep, MAP  content[], size_t content_len);
 
+
+/*
+Cleans up the config list by freeing memory properly
+
+content: The array to store key value pairs from the config
+content_len: The length of the content array
+
+Returns:
+N/A
+
+*/
+void free_map_list(MAP * content, size_t content_len);
 #endif /*INI_CONFIG_PARSER_H*/

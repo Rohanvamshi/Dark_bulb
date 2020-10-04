@@ -52,28 +52,25 @@ static struct file_operations file_ops = {
 Internal implementations of device functions
 
 pin_num: The pin value to write to is in the first bit,
-The pin number is represented as a position in bits 8-24
+The pin number is represented as a value contained in bytes 8-15
 
 Returns:
 Returns 0 for success or -1 for error
 */
-int _ioctl_write_pin(unsigned int pin_arg){
-	uint8_t pin_val = (uint8_t) pin_arg;
-	pin_arg = (pin_arg >> 8);
-	uint32_t pin_num = 0;
+int _ioctl_write_pin(uint32_t pin_arg){
+	printk(KERN_INFO "Pin input %u", pin_arg);
+	uint32_t mask_off = 0;
+	uint32_t zero = 0;
+	uint8_t pin_val = (uint8_t) (pin_arg ^ (mask_off));
+	uint32_t pin_num = (pin_arg >> 8);
 	uint32_t first_bit = 1;
 
-	//Count the number of positions shifted to get the pin number
-	while((pin_arg & first_bit) != first_bit){
-		pin_num++;
-		pin_arg = (pin_arg >> first_bit);
-
-		//Make sure that pin number is valid
-		if(pin_num >= GPIO_PIN_COUNT){
-			printk(KERN_ALERT "Pin number %u given is invalid", pin_num);
-			return -EINVAL;
-		}
+	//Make sure that pin number is valid
+	if(pin_num >= GPIO_PIN_COUNT){
+		printk(KERN_ALERT "Pin number %u given is invalid", pin_num);
+		return -EINVAL;
 	}
+	printk(KERN_INFO "Attempting to write value %u to pin %u", pin_val, pin_num);
 
 	uint32_t gpio_base = 0;
 	uint32_t * gpio_virt_mem = NULL;
@@ -81,10 +78,10 @@ int _ioctl_write_pin(unsigned int pin_arg){
 	//Check if GPCLR is to be chosen
 	if (pin_val == 0){
 		gpio_base = (uint32_t) (GPIO_BASE + GPIO_GPCLR_OFFSET);
-	}
+		pin_val = 1;
 
 	//Check if GPSET is to be chosen
-	if (pin_val == 1){
+	}else if (pin_val == 1){
 		gpio_base = (uint32_t) (GPIO_BASE + GPIO_GPSET_OFFSET);
 	}
 
@@ -99,8 +96,10 @@ int _ioctl_write_pin(unsigned int pin_arg){
 	printk(KERN_INFO "Successfully requested memory region %x, pin num %u",
 	(unsigned int) gpio_base, pin_num);
 
-	//Even though it is deprecated, since this is an out-of-tree module,
+	// Even though it is deprecated, since this is an out-of-tree module,
 	// We are using ioremap to request virtual map of physical address
+	// We understand that we need to check if the memory area is being used first but we
+	// are skipping disabling the existing gpio driver
 	gpio_virt_mem = (uint32_t *) ioremap(gpio_base, GPIO_REG_SIZE);
 	if(gpio_virt_mem == NULL){
 		printk(KERN_ALERT "Failed to map physical memory to kernel address space");
@@ -110,24 +109,27 @@ int _ioctl_write_pin(unsigned int pin_arg){
 	printk(KERN_INFO "Successfully mapped physical memory "
 	  		"at %x to kernel address space", gpio_base);
 
-    //Read byte containing pin state
+    //Read word containing pin state
 	uint32_t pin_reg_val = (uint32_t) readw(gpio_virt_mem);
-	printk(KERN_INFO "Pin register val:\n");
+	uint32_t pin_curr_val = 0;
 
-	int_to_bin(pin_reg_val);
+	//Calculate current state of pin, need to shift if pin number is not 0
+	if(pin_num != 0){
+		pin_curr_val = (pin_reg_val >> (pin_num - 1)) ^ zero;
+	}
+
+	printk(KERN_INFO "Current state of pin %u is %u", pin_num, pin_curr_val);
 
 	//Set position to write to
 	uint32_t pin_write = (first_bit << pin_num);
 
 	//Set bit in read value
-	pin_write = pin_write | pin_reg_val;
-
-	printk(KERN_INFO "Pin register writeback:\n");
-
-	int_to_bin(pin_write);
+	pin_write = pin_reg_val | pin_write;
 
 	//Write the value back to the register with the desired bit set/cleared
 	writew(pin_write, gpio_virt_mem);
+
+	printk(KERN_INFO "Wrote the value %u to pin %u\n", pin_val, pin_num);
 
 	return 0;
 }
@@ -318,7 +320,7 @@ long devgpio_ioctl (struct file *filp,
 		return -EFAULT;
 	}
 
-  	char val = (char)0;
+  	uint32_t val = 0;
 
 	//Implementation of supported dev_gpio commands
 	switch(cmd) {
@@ -327,13 +329,13 @@ long devgpio_ioctl (struct file *filp,
 
 		case DEV_GPIO_IOC_READ:
 			printk(KERN_INFO "Performing ioctl read");
-			val = *((char *)arg);
+			val = *((unsigned long *)arg);
 			return_val = _ioctl_read_pin(val);
 			break;
 
 		case DEV_GPIO_IOC_WRITE:
 			printk(KERN_INFO "Performing ioctl write");
-			val = *((char *)arg);
+			val = (uint32_t) *((unsigned long*) arg);
 			return_val = _ioctl_write_pin(val);
 			break;
 

@@ -24,7 +24,7 @@ int _ioctl_read_pin(unsigned int pin_num);
 Internal implementations of device functions
 
 pin_num: The pin value to write to is in the first bit,
-The pin number is represented as a position in bits 8-24
+The pin number is represented as a value contained in bytes 8-15
 
 Returns:
 Returns 0 for success or -1 for error

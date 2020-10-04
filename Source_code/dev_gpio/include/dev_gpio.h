@@ -9,6 +9,7 @@
 #define DEV_GPIO_IOC_RESET  _IO(DEV_GPIO_IOC_MAGIC, 0)
 #define DEV_GPIO_IOC_READ   _IOR(DEV_GPIO_IOC_MAGIC, 1, unsigned long *)
 #define DEV_GPIO_IOC_WRITE   _IOR(DEV_GPIO_IOC_MAGIC, 2, unsigned long *)
+#define DEV_GPIO_IOC_CHANGEDIR  _IOR(DEV_GPIO_IOC_MAGIC, 3, unsigned long *)
 
 /*
 Internal implementations of device functions
@@ -23,13 +24,25 @@ int _ioctl_read_pin(unsigned int pin_num);
 /*
 Internal implementations of device functions
 
-pin_num: The pin value to write to is in the first bit,
+pin_arg: The pin value to write to is in the first bit,
 The pin number is represented as a value contained in bytes 8-15
 
 Returns:
 Returns 0 for success or -1 for error
 */
 int _ioctl_write_pin(unsigned int pin_arg);
+
+
+/*
+Internal implementations of device functions
+
+pin_arg: The pin direction (0 for in, 1 for out) is in the first bit,
+The pin number is represented as a value contained in bytes 8-15
+
+Returns:
+Returns 0 for success or -1 for error
+*/
+int _ioctl_change_pin_dir(unsigned int pin_arg);
 
 long devgpio_ioctl (struct file *,unsigned int, unsigned long);
 static int device_open(struct inode *, struct file *);

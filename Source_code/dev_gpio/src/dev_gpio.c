@@ -48,6 +48,71 @@ static struct file_operations file_ops = {
 	.unlocked_ioctl = devgpio_ioctl
 	};
 
+
+/*
+Internal implementations of device functions
+
+pin_arg: The pin direction (0 for in, 1 for out) is in the first bit,
+The pin number is represented as a value contained in bytes 8-15
+
+Returns:
+Returns 0 for success or -1 for error
+*/
+int _ioctl_change_pin_dir(unsigned int pin_arg){
+	printk(KERN_INFO "Pin input for changing direction: %u", pin_arg);
+	uint32_t mask_off = 0;
+	uint32_t zero = 0;
+	uint8_t pin_val = (uint8_t) (pin_arg ^ (mask_off));
+	uint32_t pin_num = (pin_arg >> 8);
+	uint32_t first_bit = 1;
+	uint32_t pin_mode_pos = 0;
+
+	//Make sure that pin number is valid
+	if(pin_num >= GPIO_PIN_COUNT){
+		printk(KERN_ALERT "Pin number %u given is invalid", pin_num);
+		return -EINVAL;
+	}
+	printk(KERN_INFO "Attempting to set mode %u to pin %u", pin_val, pin_num);
+
+	uint32_t gpio_base = 0;
+	uint32_t * gpio_virt_mem = NULL;
+	
+	//Set base to approprieate select offset for GPFSEL
+	if (IN_RANGE_GPFSEL0(pin_num)){
+		gpio_base = (uint32_t) (GPIO_BASE + GPIO_GPFSEL0_OFFSET);
+
+	}else if(IN_RANGE_GPFSEL1(pin_num)){
+		gpio_base = (uint32_t) (GPIO_BASE + GPIO_GPFSEL1_OFFSET);
+
+	}else{
+		//This should never happen
+		printk(KERN_ALERT "Pin number %u is out of the range for GPFSEL", pin_num);
+		return -EINVAL;
+	}
+
+	printk(KERN_INFO "Successfully requested memory region %x, pin num %u",
+	(unsigned int) gpio_base, pin_num);
+
+	// Even though it is deprecated, since this is an out-of-tree module,
+	// We are using ioremap to request virtual map of physical address
+	// We understand that we need to check if the memory area is being used first but we
+	// are skipping disabling the existing gpio driver
+	gpio_virt_mem = (uint32_t *) ioremap(gpio_base, GPIO_REG_SIZE);
+	if(gpio_virt_mem == NULL){
+		printk(KERN_ALERT "Failed to map physical memory to kernel address space");
+		return -EINVAL;
+	}
+
+	printk(KERN_INFO "Successfully mapped physical memory "
+	  		"at %x to kernel address space", gpio_base);
+
+	// Read the contents of the register in
+	uint32_t pin_reg_val = (uint32_t) readw(gpio_virt_mem);
+
+	// Get the correct bit position to change
+	GPIO_GPFSEL_POS(pin_num, pin_reg_val);
+}
+
 /*
 Internal implementations of device functions
 
@@ -58,7 +123,7 @@ Returns:
 Returns 0 for success or -1 for error
 */
 int _ioctl_write_pin(uint32_t pin_arg){
-	printk(KERN_INFO "Pin input %u", pin_arg);
+	printk(KERN_INFO "Pin input for writing:  %u", pin_arg);
 	uint32_t mask_off = 0;
 	uint32_t zero = 0;
 	uint8_t pin_val = (uint8_t) (pin_arg ^ (mask_off));
@@ -337,6 +402,10 @@ long devgpio_ioctl (struct file *filp,
 			printk(KERN_INFO "Performing ioctl write");
 			val = (uint32_t) *((unsigned long*) arg);
 			return_val = _ioctl_write_pin(val);
+			break;
+
+		case DEV_GPIO_IOC_CHANGEDIR:
+
 			break;
 
 		default:

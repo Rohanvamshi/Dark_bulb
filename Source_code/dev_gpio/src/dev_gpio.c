@@ -23,23 +23,6 @@ Device class variables
 static struct class* dev_gpio_class = NULL;
 static struct device* dev_gpio_device = NULL;
 
-
-/*
-TODO: Move to dev_gpio.h
-Device functions
-*/
-long devgpio_ioctl (struct file *,unsigned int, unsigned long);
-static int device_open(struct inode *, struct file *);
-static int device_release(struct inode *, struct file *);
-static ssize_t device_read(struct file *, char *, size_t, loff_t *);
-static ssize_t device_write(struct file *, const char *, size_t, loff_t *);
-
-/*
-TODO: Move to dev_gpio.h
-Internal implementations of device functions
-*/
-int _ioctl_read_pin(unsigned int pin_num);
-
 /*
 TODO: Move function to debug.c file
 */
@@ -66,10 +49,100 @@ static struct file_operations file_ops = {
 	};
 
 /*
+Internal implementations of device functions
+
+pin_num: The pin value to write to is in the first bit,
+The pin number is represented as a value contained in bytes 8-15
+
+Returns:
+Returns 0 for success or -1 for error
+*/
+int _ioctl_write_pin(uint32_t pin_arg){
+	printk(KERN_INFO "Pin input %u", pin_arg);
+	uint32_t mask_off = 0;
+	uint32_t zero = 0;
+	uint8_t pin_val = (uint8_t) (pin_arg ^ (mask_off));
+	uint32_t pin_num = (pin_arg >> 8);
+	uint32_t first_bit = 1;
+
+	//Make sure that pin number is valid
+	if(pin_num >= GPIO_PIN_COUNT){
+		printk(KERN_ALERT "Pin number %u given is invalid", pin_num);
+		return -EINVAL;
+	}
+	printk(KERN_INFO "Attempting to write value %u to pin %u", pin_val, pin_num);
+
+	uint32_t gpio_base = 0;
+	uint32_t * gpio_virt_mem = NULL;
+	
+	//Check if GPCLR is to be chosen
+	if (pin_val == 0){
+		gpio_base = (uint32_t) (GPIO_BASE + GPIO_GPCLR_OFFSET);
+		pin_val = 1;
+
+	//Check if GPSET is to be chosen
+	}else if (pin_val == 1){
+		gpio_base = (uint32_t) (GPIO_BASE + GPIO_GPSET_OFFSET);
+	}
+
+	//Check if pin is part of first or second set of pin level registers
+	if(pin_num >= 32){
+		// Use the second register for the pin count
+		gpio_base += (uint32_t) GPIO_REG_SIZE;
+		//Adjust pin number to match bit position
+		pin_num = pin_num % 32;
+	}
+
+	printk(KERN_INFO "Successfully requested memory region %x, pin num %u",
+	(unsigned int) gpio_base, pin_num);
+
+	// Even though it is deprecated, since this is an out-of-tree module,
+	// We are using ioremap to request virtual map of physical address
+	// We understand that we need to check if the memory area is being used first but we
+	// are skipping disabling the existing gpio driver
+	gpio_virt_mem = (uint32_t *) ioremap(gpio_base, GPIO_REG_SIZE);
+	if(gpio_virt_mem == NULL){
+		printk(KERN_ALERT "Failed to map physical memory to kernel address space");
+		return -EINVAL;
+	}
+
+	printk(KERN_INFO "Successfully mapped physical memory "
+	  		"at %x to kernel address space", gpio_base);
+
+    //Read word containing pin state
+	uint32_t pin_reg_val = (uint32_t) readw(gpio_virt_mem);
+	uint32_t pin_curr_val = 0;
+
+	//Calculate current state of pin, need to shift if pin number is not 0
+	if(pin_num != 0){
+		pin_curr_val = (pin_reg_val >> (pin_num - 1)) ^ zero;
+	}
+
+	printk(KERN_INFO "Current state of pin %u is %u", pin_num, pin_curr_val);
+
+	//Set position to write to
+	uint32_t pin_write = (first_bit << pin_num);
+
+	//Set bit in read value
+	pin_write = pin_reg_val | pin_write;
+
+	//Write the value back to the register with the desired bit set/cleared
+	writew(pin_write, gpio_virt_mem);
+
+	printk(KERN_INFO "Wrote the value %u to pin %u\n", pin_val, pin_num);
+
+	return 0;
+}
+
+/*
 Reads from the specified ioctl pin.
 Assumes that the pin number is the physical pin number on the board
 in the pinout diagram.
-Returns 0 or 1 as the value, or -1 if error
+
+pin_num: The pin number to read from
+
+Returns:
+0 or 1 as the value, or -1 if error
 */
 int _ioctl_read_pin(unsigned int pin_num){
 
@@ -150,11 +223,7 @@ static ssize_t device_write(struct file *flip, const char *buffer, size_t len, l
 static int device_open(struct inode *inode, struct file *file){
 	//Check if device is already open
 	if(device_open_count){
-
-
 		printk(KERN_ALERT "device is open by %d devices \n", device_open_count);
-
-
 	}
 	else
 	{
@@ -251,17 +320,25 @@ long devgpio_ioctl (struct file *filp,
 		return -EFAULT;
 	}
 
-  	char val = (char)0;
+  	uint32_t val = 0;
 
 	//Implementation of supported dev_gpio commands
 	switch(cmd) {
 		case DEV_GPIO_IOC_RESET:
 			break;
+
 		case DEV_GPIO_IOC_READ:
 			printk(KERN_INFO "Performing ioctl read");
-			val = *((char *)arg);
+			val = *((unsigned long *)arg);
 			return_val = _ioctl_read_pin(val);
 			break;
+
+		case DEV_GPIO_IOC_WRITE:
+			printk(KERN_INFO "Performing ioctl write");
+			val = (uint32_t) *((unsigned long*) arg);
+			return_val = _ioctl_write_pin(val);
+			break;
+
 		default:
 		return -ENOTTY;
 	}

@@ -59,23 +59,25 @@ Returns:
 Returns 0 for success or -1 for error
 */
 int _ioctl_change_pin_dir(unsigned int pin_arg){
-	printk(KERN_INFO "Pin input for changing direction: %u", pin_arg);
 	uint32_t mask_off = 0;
 	uint32_t zero = 0;
-	uint8_t pin_val = (uint8_t) (pin_arg ^ (mask_off));
-	uint32_t pin_num = (pin_arg >> 8);
 	uint32_t first_bit = 1;
 	uint32_t pin_mode_pos = 0;
+	uint32_t pin_num = (pin_arg >> 8);
+	uint32_t gpio_base = 0;
+	uint32_t * gpio_virt_mem = NULL;
+	uint32_t pin_reg_val = 0;
+	uint32_t end_idx = 0; // The ending idx for the bits that represent that particular pin in the register
+	uint32_t pin_dir = pin_arg & first_bit; // The direction of the pin (0/1) (in/out)
+	printk(KERN_INFO "Pin input for changing direction: %u", pin_arg);
 
 	//Make sure that pin number is valid
 	if(pin_num >= GPIO_PIN_COUNT){
 		printk(KERN_ALERT "Pin number %u given is invalid", pin_num);
 		return -EINVAL;
 	}
-	printk(KERN_INFO "Attempting to set mode %u to pin %u", pin_val, pin_num);
+	printk(KERN_INFO "Attempting to set mode %u to pin %u", pin_dir, pin_num);
 
-	uint32_t gpio_base = 0;
-	uint32_t * gpio_virt_mem = NULL;
 	
 	//Set base to approprieate select offset for GPFSEL
 	if (IN_RANGE_GPFSEL0(pin_num)){
@@ -106,11 +108,34 @@ int _ioctl_change_pin_dir(unsigned int pin_arg){
 	printk(KERN_INFO "Successfully mapped physical memory "
 	  		"at %x to kernel address space", gpio_base);
 
-	// Read the contents of the register in
-	uint32_t pin_reg_val = (uint32_t) readw(gpio_virt_mem);
+	// Read the contents of the GPFSEL register mapped to virtual memory
+	pin_reg_val = (uint32_t) readw(gpio_virt_mem);
 
-	// Get the correct bit position to change
-	GPIO_GPFSEL_POS(pin_num, pin_reg_val);
+	// Get the correct ending bit position to change
+	end_idx = gpio_gpfsel_pos(pin_num);
+
+	//Change bits at applicable positions and write out register
+	//TODO: make this more independent of underlying gpio implementation
+	mask_off = 0;
+	if(pin_dir == GPIO_GPFSEL_IN){
+		pin_reg_val = pin_reg_val & ~(1 << end_idx);
+		end_idx--;
+		pin_reg_val = pin_reg_val & ~(1 << end_idx);
+		end_idx--;
+		pin_reg_val = pin_reg_val & ~(1 << end_idx);
+
+	}else{ //GPIO pin out direction
+		pin_reg_val = pin_reg_val & ~(1 << end_idx);
+		end_idx--;
+		pin_reg_val = pin_reg_val & ~(1 << end_idx);
+		end_idx--;
+		pin_reg_val = pin_reg_val | (1 << end_idx);
+	}
+
+	//Write the value back to the register with the desired bits set/cleared
+	writew(pin_reg_val, gpio_virt_mem);
+
+	return 0;
 }
 
 /*
@@ -123,12 +148,17 @@ Returns:
 Returns 0 for success or -1 for error
 */
 int _ioctl_write_pin(uint32_t pin_arg){
-	printk(KERN_INFO "Pin input for writing:  %u", pin_arg);
 	uint32_t mask_off = 0;
 	uint32_t zero = 0;
 	uint8_t pin_val = (uint8_t) (pin_arg ^ (mask_off));
 	uint32_t pin_num = (pin_arg >> 8);
 	uint32_t first_bit = 1;
+	uint32_t pin_write = 0;
+	uint32_t gpio_base = 0;
+	uint32_t * gpio_virt_mem = NULL;
+	uint32_t pin_reg_val = 0;
+	uint32_t pin_curr_val = 0;
+	printk(KERN_INFO "Pin input for writing:  %u", pin_arg);
 
 	//Make sure that pin number is valid
 	if(pin_num >= GPIO_PIN_COUNT){
@@ -137,8 +167,6 @@ int _ioctl_write_pin(uint32_t pin_arg){
 	}
 	printk(KERN_INFO "Attempting to write value %u to pin %u", pin_val, pin_num);
 
-	uint32_t gpio_base = 0;
-	uint32_t * gpio_virt_mem = NULL;
 	
 	//Check if GPCLR is to be chosen
 	if (pin_val == 0){
@@ -175,8 +203,7 @@ int _ioctl_write_pin(uint32_t pin_arg){
 	  		"at %x to kernel address space", gpio_base);
 
     //Read word containing pin state
-	uint32_t pin_reg_val = (uint32_t) readw(gpio_virt_mem);
-	uint32_t pin_curr_val = 0;
+	pin_reg_val = (uint32_t) readw(gpio_virt_mem);
 
 	//Calculate current state of pin, need to shift if pin number is not 0
 	if(pin_num != 0){
@@ -186,7 +213,7 @@ int _ioctl_write_pin(uint32_t pin_arg){
 	printk(KERN_INFO "Current state of pin %u is %u", pin_num, pin_curr_val);
 
 	//Set position to write to
-	uint32_t pin_write = (first_bit << pin_num);
+	pin_write = (first_bit << pin_num);
 
 	//Set bit in read value
 	pin_write = pin_reg_val | pin_write;
@@ -211,15 +238,16 @@ Returns:
 */
 int _ioctl_read_pin(unsigned int pin_num){
 
+	uint32_t gpio_gplev_base = (uint32_t) (GPIO_BASE + GPIO_GPLEV_OFFSET);
+	uint32_t * gpio_virt_mem = NULL;
+	int pin_state = 0;
+	uint32_t pin_reg_val = 0;
+
 	//Make sure that pin number is valid
 	if(pin_num >= GPIO_PIN_COUNT){
 		printk(KERN_ALERT "Pin number %u given is invalid", pin_num);
 		return -EINVAL;
 	}
-
-	uint32_t gpio_gplev_base = (uint32_t) (GPIO_BASE + GPIO_GPLEV_OFFSET);
-	uint32_t * gpio_virt_mem = NULL;
-	int pin_state = 0;
 
 	//Check if pin is part of first or second set of pin level registers
 	if(pin_num >= 32){
@@ -254,7 +282,7 @@ int _ioctl_read_pin(unsigned int pin_num){
 	  		"at %x to kernel address space", gpio_gplev_base);
 
   //Read byte containing pin state
-	uint32_t pin_reg_val = (uint32_t) readw(gpio_virt_mem);
+    pin_reg_val = (uint32_t) readw(gpio_virt_mem);
 
 	//Get correct bit position value
 	pin_state = (pin_reg_val & (1 << pin_num));
@@ -370,6 +398,7 @@ long devgpio_ioctl (struct file *filp,
 
 	int return_val = 0;
 	int err = 0;
+	uint32_t val = 0;
 	
 	// Invalid command type
 	if (_IOC_TYPE(cmd) != DEV_GPIO_IOC_MAGIC){
@@ -385,7 +414,6 @@ long devgpio_ioctl (struct file *filp,
 		return -EFAULT;
 	}
 
-  	uint32_t val = 0;
 
 	//Implementation of supported dev_gpio commands
 	switch(cmd) {

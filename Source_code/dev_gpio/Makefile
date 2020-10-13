@@ -1,6 +1,8 @@
 TARGET=dev_gpio
+GPIO=gpio
 SRC=./src
-obj-m +=$(SRC)/$(TARGET).o
+obj-m+=$(SRC)/$(TARGET).o 
+dev_gpio-objs+=$(SRC)/$(GPIO).o
 
 ifndef CURR_KERNEL_DIR
 	CURR_KERNEL_DIR=$(PWD)

@@ -15,8 +15,8 @@ MODULE_AUTHOR("Bulbs");
 MODULE_DESCRIPTION("dev gpio");
 MODULE_VERSION("1.0");
 
-#define DEVICE_NAME "dev_gpio"
-#define CLASS_NAME "dev_gpio"
+#define DEVICE_NAME "devgpio"
+#define CLASS_NAME "devgpio"
 /*
 Device class variables
 */

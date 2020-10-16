@@ -1,5 +1,9 @@
 #ifndef GPIO_H
 #define GPIO_H
+#include <linux/types.h>
+
+//GPIO PIN count
+#define GPIO_PIN_COUNT 54
 
 // GPIO Physical base address
 #define GPIO_BASE 0x3f200000
@@ -25,11 +29,23 @@
 //GPIO offset for GPFSEL1 pins  10 - 19
 #define GPIO_GPFSEL1_OFFSET 0x04
 
-//Checks if GPFSEL0 applies to x
+//Checks if GPFSEL0 applies to pin x
 #define IN_RANGE_GPFSEL0(x) (x <= 9 && x >= 0)
 
-//Checks if GPFSEL1 applies to x
+//Checks if GPFSEL1 applies to pin x
 #define IN_RANGE_GPFSEL1(x) (x <= 19 && x >= 10)
+
+//Checks if GPFSEL2 applies to pin x
+#define IN_RANGE_GPFSEL2(x) (x <= 29 && x >= 20)
+
+//Checks if GPFSEL3 applies to pin x
+#define IN_RANGE_GPFSEL3(x) (x <= 39 && x >= 30)
+
+//Checks if GPFSEL4 applies to pin x
+#define IN_RANGE_GPFSEL4(x) (x <= 49 && x >= 40)
+
+//Checks if GPFSEL5 applies to pin x
+#define IN_RANGE_GPFSEL5(x) (x <= (GPIO_PIN_COUNT-1) && x >= 50)
 
 //GPIO value for selecting input mode
 #define GPIO_GPFSEL_IN 0x00
@@ -37,10 +53,24 @@
 //GPIO value for selecting output mode
 #define GPIO_GPFSEL_OUT 0x01
 
-//GPIO PIN count
-#define GPIO_PIN_COUNT 54
 
-//Determine bit start position of pin for GPSEL register
-inline int gpio_gpfsel_pos(unsigned int x);
+/*
+Internal implementations of device functions
+
+pin_arg: The pin direction (0 for in, 1 for out) is in the first bit,
+The pin number is represented as a value contained in bytes 8-15
+
+Returns:
+Returns 0 for success or -1 for error
+*/
+int change_pin_dir(uint32_t pin_num, uint32_t pin_dir);
+
+/*Determine bit start position of pin for GPSEL register
+pin: The pin number
+
+Returns:
+Returns the ending index of the pins position
+*/
+inline int gpio_gpfsel_pos(unsigned int pin);
 
 #endif //GPIO_H

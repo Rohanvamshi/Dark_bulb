@@ -61,9 +61,32 @@ pin_arg: The pin direction (0 for in, 1 for out) is in the first bit,
 The pin number is represented as a value contained in bytes 8-15
 
 Returns:
-Returns 0 for success or -1 for error
+	Returns 0 for success or -1 for error
 */
 int change_pin_dir(uint32_t pin_num, uint32_t pin_dir);
+
+/*
+Internal implementations of device functions
+
+pin_num: The pin value to write to is in the first bit,
+pin_val: The value to write to the pin (0 or 1)
+
+Returns:
+	Returns 0 for success or -1 for error
+*/
+int write_to_pin(uint32_t pin_num, uint32_t pin_val);
+
+/*
+Reads from the specified ioctl pin.
+Assumes that the pin number is the physical pin number on the board
+in the pinout diagram.
+
+pin_num: The pin number to read from
+
+Returns:
+	0 or 1 as the value, or -1 if error
+*/
+int read_pin(uint32_t pin_num);
 
 /*Determine bit start position of pin for GPSEL register
 pin: The pin number

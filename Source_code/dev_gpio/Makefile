@@ -1,6 +1,9 @@
-TARGET=dev_gpio
+TARGET=devgpio
+MAIN=dev_gpio
+GPIO=gpio
 SRC=./src
-obj-m +=$(SRC)/$(TARGET).o
+obj-m += $(TARGET).o
+$(TARGET)-objs := $(SRC)/$(GPIO).o $(SRC)/$(MAIN).o
 
 ifndef CURR_KERNEL_DIR
 	CURR_KERNEL_DIR=$(PWD)

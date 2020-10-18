@@ -1,8 +1,12 @@
 #ifndef DEV_GPIO_H
 #define DEV_GPIO_H
-
+#include "gpio.h"
 // Define error
 #define GENERIC_ERROR -1
+
+//Device defs
+#define GPIO_OUT GPIO_GPFSEL_OUT
+#define GPIO_IN GPIO_GPFSEL_IN
 
 // Define IOC commands
 #define DEV_GPIO_IOC_MAGIC  'Z'

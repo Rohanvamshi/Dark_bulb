@@ -27,8 +27,8 @@ Returns:
 	Returns 0 on success, a negative value on failure
 */
 int set_inf_fc51_segment(INFRARED_SENSOR * inf_sensor, char seg, unsigned int value){
-
 	if(value > INF_FC51_MAX_VAL){
+		printf("Cannot set inf sensor %c to value %u. Value exceeds %d\n", seg, value, INF_FC51_MAX_VAL);
 		return -1;
 	}
 
@@ -40,6 +40,7 @@ int set_inf_fc51_segment(INFRARED_SENSOR * inf_sensor, char seg, unsigned int va
 
 		// Invalid segment
 		default:
+			printf("Error inf sensor %c to value %u. Invalid segment\n", seg, value);
 			return -1;
 	}
 	return 0;

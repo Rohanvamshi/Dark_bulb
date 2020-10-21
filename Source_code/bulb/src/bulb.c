@@ -2,6 +2,9 @@
 #include<string.h>
 #include<stdlib.h>
 #include <errno.h>
+#include<fcntl.h>
+#include<sys/ioctl.h>
+#include<sys/types.h>
 
 #include "bulb.h"
 #include "ini_config_parser.h"
@@ -9,6 +12,11 @@
 //Include peripherals
 #include "seven_seg_peripheral.h"
 #include "infrared_fc_51_peripheral.h"
+
+//Include devgpio ioctl commands
+#include "../../dev_gpio/include/dev_gpio.h"
+
+#define DEVICE_FILENAME "/dev/devgpio"
 #pragma pack(1)
 
 static const char * USAGE_BANNER = "Usage: bulb [OPTIONS]\n\n"
@@ -34,6 +42,113 @@ Program options
 */
 static const char * OPT_CONFIG  = "--config";
 static const char * OPT_VERSION = "--version";
+
+/*Initializes the board with the configurations stated for the sensors.
+
+inf-sensor: The infrared sensor
+seven_display: The 7 segment cathode display
+
+Returns:
+Returns the file descriptor of the open device file
+*/
+int init_program_board(INFRARED_SENSOR * inf_sensor, SEVEN_SEG_DISPLAY * seven_display){
+  u_int32_t pin = 0;
+  int ret = 0;
+
+  //Open device file for reading and writing
+  int dev_fd = open(DEVICE_FILENAME, O_RDWR);
+
+  if(dev_fd < 0){
+      printf("Error opening file\n");
+      ret = dev_fd;
+      goto leave;
+  }
+
+  //Initialize infrared sensor on board
+  pin = (inf_sensor->out_pin << 8);
+  pin = pin | GPIO_IN; //Set pin direction to in
+  printf("Set pin %u to out direction via ioctl changedir\n", inf_sensor->out_pin);
+  ret = ioctl(dev_fd, DEV_GPIO_IOC_CHANGEDIR, &pin);
+  if(ret < 0){
+    goto leave;
+  }
+  
+  //Initialize seven segment display
+
+  //Setting segment A
+  pin = 0;
+  pin = (seven_display->seg_a << 8);
+  pin = pin | GPIO_OUT; //Set pin direction to out
+  printf("Set pin %u to in direction via ioctl changedir\n", seven_display->seg_a);
+  ret = ioctl(dev_fd, DEV_GPIO_IOC_CHANGEDIR, &pin);
+  if(ret < 0){
+    goto leave;
+  }
+
+  //Setting segment B
+  pin = 0;
+  pin = (seven_display->seg_b << 8);
+  pin = pin | GPIO_OUT; //Set pin direction to out
+  printf("Set pin %u to in direction via ioctl changedir\n", seven_display->seg_b);
+  ret = ioctl(dev_fd, DEV_GPIO_IOC_CHANGEDIR, &pin);
+  if(ret < 0){
+    goto leave;
+  }
+
+  //Setting segment C
+  pin = 0;
+  pin = (seven_display->seg_c << 8);
+  pin = pin | GPIO_OUT; //Set pin direction to out
+  printf("Set pin %u to in direction via ioctl changedir\n", seven_display->seg_c);
+  ret = ioctl(dev_fd, DEV_GPIO_IOC_CHANGEDIR, &pin);
+  if(ret < 0){
+    goto leave;
+  }
+
+    //Setting segment D
+  pin = 0;
+  pin = (seven_display->seg_d << 8);
+  pin = pin | GPIO_OUT; //Set pin direction to out
+  printf("Set pin %u to in direction via ioctl changedir\n", seven_display->seg_d);
+  ret = ioctl(dev_fd, DEV_GPIO_IOC_CHANGEDIR, &pin);
+  if(ret < 0){
+    goto leave;
+  }
+
+    //Setting segment E
+  pin = 0;
+  pin = (seven_display->seg_e << 8);
+  pin = pin | GPIO_OUT; //Set pin direction to out
+  printf("Set pin %u to in direction via ioctl changedir\n", seven_display->seg_e);
+  ret = ioctl(dev_fd, DEV_GPIO_IOC_CHANGEDIR, &pin);
+  if(ret < 0){
+    goto leave;
+  }
+
+    //Setting segment F
+  pin = 0;
+  pin = (seven_display->seg_f << 8);
+  pin = pin | GPIO_OUT; //Set pin direction to out
+  printf("Set pin %u to in direction via ioctl changedir\n", seven_display->seg_f);
+  ret = ioctl(dev_fd, DEV_GPIO_IOC_CHANGEDIR, &pin);
+  if(ret < 0){
+    goto leave;
+  }
+
+    //Setting segment G
+  pin = 0;
+  pin = (seven_display->seg_g << 8);
+  pin = pin | GPIO_OUT; //Set pin direction to out
+  printf("Set pin %u to in direction via ioctl changedir\n", seven_display->seg_g);
+  ret = ioctl(dev_fd, DEV_GPIO_IOC_CHANGEDIR, &pin);
+  if(ret < 0){
+    goto leave;
+  }
+
+  leave:
+    return ret;
+
+}
 
 /*
 Initializes a given infrared structure based on the given ini map
@@ -72,11 +187,11 @@ int init_inffc51_peripheral(INFRARED_SENSOR * inf_sensor, MAP ini_content[], siz
       continue;
     }
 
-    //When inside of the seven_seg_section, set segment in display
+    //When inside of the infrared_section, set out pin value
     if(is_header(entry) != 1 && entry.value != NULL && is_inf_header){
       printf("Setting segment %c of infrared sensor to %s\n", entry.key[0], entry.value);
       if(set_inf_fc51_segment(inf_sensor, entry.key[0], (unsigned int)atoi(entry.value))){
-        printf("Error setting infrared sensor %s\n", entry.key);
+        printf("Error setting infrared sensor %s. \n", entry.key);
         ret = -1;
       }
     }
@@ -180,7 +295,7 @@ int main(int argc, char **argv){
   //Parse file contents into map object
   parse_ini_config(filep, ini_content, MAX_FILE_LINES);
 
-  //Initialize seven segment display
+  //Initialize seven segment display if specified in the file
   if(init_seven_seg_peripheral(&seven_display, ini_content,
       (size_t) MAX_FILE_LINES) < 0){
     printf("Error initializing seven segment display peripheral configuration");
@@ -188,13 +303,21 @@ int main(int argc, char **argv){
   }
   print_seven_segment(seven_display);
 
-  //Initialize infrared sensor
+  //Initialize infrared sensor if specified in the file
   if(init_inffc51_peripheral(&inf_fc51_sensor, ini_content,
       (size_t) MAX_FILE_LINES) < 0){
     printf("Error initializing infrared sensor peripheral configuration");
     goto leave;
   }
   print_infrared_sensor(inf_fc51_sensor);
+
+  //Initialize board
+  printf("Initializing board....");
+  if(init_program_board(&inf_fc51_sensor, &seven_display)){
+    printf("Failed to initialize board with given configuration");
+    goto leave;
+  }
+
 
   //Cleanup ini parser content
   free_map_list(ini_content, (size_t) MAX_FILE_LINES);

@@ -36,5 +36,15 @@ Returns:
 	Returns 0 on success, else returns -1 on failure
 */
 int init_seven_seg_peripheral(SEVEN_SEG_DISPLAY * seven_display, MAP ini_content[], size_t len);
+
+/*Initializes the board with the configurations stated for the sensors.
+
+inf-sensor: The infrared sensor
+seven_display: The 7 segment cathode display
+
+Returns:
+Returns the file descriptor of the open device file
+*/
+int init_program_board(INFRARED_SENSOR * inf_sensor, SEVEN_SEG_DISPLAY * seven_display);
 //parse_config
 #endif /*BULB_H*/

@@ -29,6 +29,18 @@
 //GPIO offset for GPFSEL1 pins  10 - 19
 #define GPIO_GPFSEL1_OFFSET 0x04
 
+//GPIO offset for GPFSEL2 pins  20 - 29
+#define GPIO_GPFSEL2_OFFSET 0x08
+
+//GPIO offset for GPFSEL3 pins  30 - 39
+#define GPIO_GPFSEL3_OFFSET 0x0c
+
+//GPIO offset for GPFSEL4 pins  40 - 49
+#define GPIO_GPFSEL4_OFFSET 0x10
+
+//GPIO offset for GPFSEL5 pins  50 - 53
+#define GPIO_GPFSEL5_OFFSET 0x14
+
 //Checks if GPFSEL0 applies to pin x
 #define IN_RANGE_GPFSEL0(x) (x <= 9 && x >= 0)
 

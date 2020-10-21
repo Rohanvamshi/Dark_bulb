@@ -37,6 +37,17 @@ int change_pin_dir(uint32_t pin_num, uint32_t pin_dir){
 	}else if(IN_RANGE_GPFSEL1(pin_num)){
 		gpio_base = (uint32_t) (GPIO_BASE + GPIO_GPFSEL1_OFFSET);
 
+	}else if(IN_RANGE_GPFSEL2(pin_num)){
+		gpio_base = (uint32_t) (GPIO_BASE + GPIO_GPFSEL2_OFFSET);
+
+	}else if(IN_RANGE_GPFSEL3(pin_num)){
+		gpio_base = (uint32_t) (GPIO_BASE + GPIO_GPFSEL3_OFFSET);
+
+	}else if(IN_RANGE_GPFSEL4(pin_num)){
+		gpio_base = (uint32_t) (GPIO_BASE + GPIO_GPFSEL4_OFFSET);
+
+	}else if(IN_RANGE_GPFSEL5(pin_num)){
+		gpio_base = (uint32_t) (GPIO_BASE + GPIO_GPFSEL5_OFFSET);
 	}else{
 		//This should never happen
 		printk(KERN_ALERT "Pin number %u is out of the range for GPFSEL", pin_num);

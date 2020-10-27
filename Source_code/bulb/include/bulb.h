@@ -46,5 +46,11 @@ Returns:
 Returns the file descriptor of the open device file
 */
 int init_program_board(INFRARED_SENSOR * inf_sensor, SEVEN_SEG_DISPLAY * seven_display);
+
+/*Write a 0 to the seven segment display
+*/
+int write_0(void);
+
+
 //parse_config
 #endif /*BULB_H*/

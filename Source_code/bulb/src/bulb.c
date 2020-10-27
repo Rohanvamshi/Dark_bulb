@@ -5,6 +5,7 @@
 #include<fcntl.h>
 #include<sys/ioctl.h>
 #include<sys/types.h>
+#include<unistd.h> //close
 
 #include "bulb.h"
 #include "ini_config_parser.h"
@@ -42,6 +43,93 @@ Program options
 */
 static const char * OPT_CONFIG  = "--config";
 static const char * OPT_VERSION = "--version";
+
+
+/*Write a 0 to the seven segment display
+*/
+int write_0(void){
+  u_int32_t pin = 0;
+  u_int32_t on = 1;
+  int ret = 0;
+
+  //Open device file for reading and writing
+  int dev_fd = open(DEVICE_FILENAME, O_RDWR);
+
+  if(dev_fd < 0){
+      printf("Error opening file\n");
+      ret = dev_fd;
+      goto leave;
+  }
+
+  //Write to segment A
+  pin = (seven_display.seg_a << 8);
+  pin = pin | on;
+  printf("Writing A");
+  ret = ioctl(dev_fd, DEV_GPIO_IOC_WRITE, &pin);
+  pin = 0;
+  if (ret < 0){
+    return ret;
+  }
+
+  //Write to segment B
+  pin = (seven_display.seg_b << 8);
+  pin = pin | on;
+  ret = ioctl(dev_fd, DEV_GPIO_IOC_WRITE, &pin);
+  pin = 0;
+  if (ret < 0){
+    return ret;
+  }
+
+  //Write to segment C
+  pin = (seven_display.seg_c << 8);
+  pin = pin | on;
+  ret = ioctl(dev_fd, DEV_GPIO_IOC_WRITE, &pin);
+  pin = 0;
+  if (ret < 0){
+    return ret;
+  }
+
+  //Write to segment D
+  pin = (seven_display.seg_d << 8);
+  pin = pin | on;
+  ret = ioctl(dev_fd, DEV_GPIO_IOC_WRITE, &pin);
+  pin = 0;
+  if (ret < 0){
+    return ret;
+  }
+
+  //Write to segment E
+  pin = (seven_display.seg_e << 8);
+  pin = pin | on;
+  ret = ioctl(dev_fd, DEV_GPIO_IOC_WRITE, &pin);
+  pin = 0;
+  if (ret < 0){
+    return ret;
+  }
+
+  //Write to segment F
+  pin = (seven_display.seg_f << 8);
+  pin = pin | on;
+  ret = ioctl(dev_fd, DEV_GPIO_IOC_WRITE, &pin);
+  pin = 0;
+  if (ret < 0){
+    return ret;
+  }
+
+  //Write to segment F
+  pin = (seven_display.seg_g << 8);
+  pin = pin | 0;
+  ret = ioctl(dev_fd, DEV_GPIO_IOC_WRITE, &pin);
+  pin = 0;
+  if (ret < 0){
+    return ret;
+  }
+
+  leave:
+    close(dev_fd);
+    return ret;
+
+}
 
 /*Initializes the board with the configurations stated for the sensors.
 
@@ -146,6 +234,7 @@ int init_program_board(INFRARED_SENSOR * inf_sensor, SEVEN_SEG_DISPLAY * seven_d
   }
 
   leave:
+    close(dev_fd);
     return ret;
 
 }
@@ -293,13 +382,16 @@ int main(int argc, char **argv){
   memset(ini_content, 0, sizeof(MAP)*MAX_FILE_LINES);
 
   //Parse file contents into map object
-  parse_ini_config(filep, ini_content, MAX_FILE_LINES);
+  if(parse_ini_config(filep, ini_content, MAX_FILE_LINES) < 0){
+    printf("Error parsing ini config file");
+    goto cleanup;
+  }
 
   //Initialize seven segment display if specified in the file
   if(init_seven_seg_peripheral(&seven_display, ini_content,
       (size_t) MAX_FILE_LINES) < 0){
     printf("Error initializing seven segment display peripheral configuration");
-    goto leave;
+    goto cleanup;
   }
   print_seven_segment(seven_display);
 
@@ -307,20 +399,26 @@ int main(int argc, char **argv){
   if(init_inffc51_peripheral(&inf_fc51_sensor, ini_content,
       (size_t) MAX_FILE_LINES) < 0){
     printf("Error initializing infrared sensor peripheral configuration");
-    goto leave;
+    goto cleanup;
   }
   print_infrared_sensor(inf_fc51_sensor);
 
   //Initialize board
   printf("Initializing board....");
-  if(init_program_board(&inf_fc51_sensor, &seven_display)){
+  if(init_program_board(&inf_fc51_sensor, &seven_display) < 0){
     printf("Failed to initialize board with given configuration");
-    goto leave;
+    goto cleanup;
   }
 
+  //Test
+  printf("Writing a 0");
+  if(write_0() < 0){
+    printf("Failed to initialize board with given configuration");
+  }
 
-  //Cleanup ini parser content
-  free_map_list(ini_content, (size_t) MAX_FILE_LINES);
+  cleanup:
+    //Cleanup ini parser content
+    free_map_list(ini_content, (size_t) MAX_FILE_LINES);
 
   leave:
     //Close file if open
